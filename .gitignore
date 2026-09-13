@@ -1,0 +1,16 @@
+# venv (already created in the repo root)
+Include/
+Lib/
+Scripts/
+pyvenv.cfg
+
+# secrets / local config
+.env
+
+# generated data — derived from notes, not source
+RAG/output/
+Fine Tune/output/
+
+# python
+__pycache__/
+*.pyc

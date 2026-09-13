@@ -1,0 +1,5 @@
+Finished reading through "Thinking in Systems" this week. The idea that stuck with me most is that shifting a system's goal is a far higher-leverage intervention than tweaking a parameter within it — most people spend all their effort adjusting parameters (a tax rate, a KPI target) when the actual goal the system is optimizing for is wrong, and no amount of parameter tuning fixes that.
+
+The other useful idea was about feedback delays: a system with a long delay between action and feedback tends to oscillate, because by the time you notice the effect of a change, you've already made several more changes on top of it. This maps surprisingly well onto engineering org problems — a hiring decision made today doesn't show its effect for six months, so orgs that hire reactively based on current pain tend to overshoot and correct in cycles.
+
+Worth rereading the chapter on "leverage points" again later; the ranked list from least to most effective intervention points is the kind of thing worth keeping close at hand when arguing about where to focus effort on a struggling project.

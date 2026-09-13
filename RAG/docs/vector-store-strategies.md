@@ -1,0 +1,33 @@
+# Vector Store / Indexing Strategies — Reference
+
+## Options
+
+**Amazon S3 Vectors — strong candidate, added from real-world POC experience.** Native vector storage and query directly in S3 (GA December 2025). Pricing is pay-per-use across storage, PUT (writes), and query (per-API + per-TB scanned, with reduced rates as an index scales past 100K vectors) — no idle floor. One published comparison: a low-volume workload (10M vectors, 1,000 queries/month) runs roughly **$3/month on S3 Vectors vs $121/month on OpenSearch**. Scales to 2 billion vectors per index, 20 trillion per bucket — far beyond anything this project needs, but confirms it's not a toy. **Real gap**: current documentation describes metadata filtering, not native keyword+vector hybrid search the way OpenSearch has it built in — hybrid would need to be either implemented at the application layer (very feasible at personal-KB scale — the whole corpus is small enough to keyword-search directly in Python) or built via the documented pattern of S3 Vectors as the storage layer with OpenSearch layered on top for search once hybrid is actually needed at scale. Integrates directly with Bedrock Knowledge Bases as a vector store option.
+
+**OpenSearch Serverless (VECTORSEARCH collection).** Managed, autoscaling, k-NN via HNSW. Native hybrid search (BM25 keyword + vector in one query) — this matters directly, since hybrid search is in our retrieval plan. IAM-native auth via AWS SigV4 — same credentials already working for Bedrock, no separate API key to manage. *Correction to what I said earlier*: I'd flagged a persistent idle-cost floor as a concern — that was true of the "Classic" Serverless architecture, but a May 2026 update ("NextGen") now scales to zero after ~10 minutes idle, removing what used to be a real ~$700/month floor. Still meaningfully more expensive than S3 Vectors at low, spiky volume (the same comparison above: ~$121/month vs ~$3/month), because it's priced in compute-hours rather than pure pay-per-use, but the "leaving it on overnight is disastrous" risk is much lower than it used to be.
+
+**OpenSearch managed cluster (provisioned, non-serverless).** Same engine, but you size and manage instances yourself (e.g. a small `t3.small.search` node) instead of paying Serverless's OCU minimum. Can be cheaper at small, steady scale; you own capacity planning and scaling instead of AWS doing it for you.
+
+**pgvector (Postgres extension, e.g. on RDS/Aurora).** Bolts vector search onto Postgres you may already be running. Familiar SQL mental model, solid HNSW/IVFFlat support. Hybrid search isn't native — you'd combine Postgres full-text search (`tsvector`) and pgvector results yourself and merge them. Near-free incrementally if an existing small RDS instance is already running; otherwise you're standing up and paying for a database just for this.
+
+**Pinecone.** Fully managed, dedicated vector DB SaaS, simple API, usage-based pricing with a real free tier for prototyping. Not AWS-native — separate vendor, separate credential, outside the AWS-first stack decision.
+
+**Weaviate.** Open-source vector DB; self-hosted or managed cloud. Native hybrid search support, GraphQL API. Self-hosting adds real operational work; managed cloud is a separate vendor again.
+
+**Chroma.** Lightweight, Python-native API, very popular for local prototyping. Hybrid search support is more limited; less proven at production scale — a fine dev-loop tool, less convincing as the "correct strategy" target for the checklist.
+
+**Milvus / Zilliz.** Purpose-built for very large scale (billions of vectors). Real operational complexity for what this project needs — overkill here.
+
+**FAISS (local, in-process library, not a server) — chosen for prototyping.** Not a database — a similarity-search library you run in your own Python process. Extremely fast, zero infrastructure, completely free. No built-in persistence layer, auth, or multi-client access — you'd build all of that yourself if you needed it. Excellent for a free, instant dev loop while iterating on retrieval logic.
+
+FAISS itself offers multiple index types: `IndexFlatIP`/`IndexFlatL2` (brute-force exact search, no training step, fine up to tens of thousands of vectors), `IndexIVFFlat` (clusters vectors via k-means and searches only nearby clusters — approximate, faster at scale, but needs a training step on a meaningfully large sample to form good clusters), and `IndexHNSWFlat` (graph-based approximate search — the same algorithm family OpenSearch's k-NN plugin uses, no training step needed, better scaling than flat, more memory per vector). At 6 chunks, `IndexFlatIP` is the obvious choice — exact search is both simpler and effectively free at this scale, and there isn't remotely enough data to usefully train an IVF index. This mirrors real practice: production systems don't reach for approximate indexes until brute-force search actually becomes slow, typically in the tens of thousands of vectors.
+
+## Selection dimensions that actually matter
+
+- **Native hybrid search** (BM25 + vector in one query) vs. bolt-on: OpenSearch and Weaviate have it natively; pgvector and Chroma don't.
+- **Auth model**: IAM/SigV4 (OpenSearch, fits an AWS-first stack) vs. API keys (Pinecone, Weaviate Cloud) vs. none needed at all (FAISS, local only).
+- **Cost at small scale**: Serverless has a real non-zero floor; pgvector on existing infra is near-free; FAISS is free; Pinecone has a usable free tier.
+- **Operational ownership**: fully managed (OpenSearch Serverless, Pinecone) vs. self-managed capacity (OpenSearch provisioned, self-hosted Weaviate/Milvus) vs. no server at all (FAISS).
+
+## The honest tradeoff for this project
+OpenSearch Serverless is the right target for learning the "correct, production-shaped strategy" — native hybrid search matches the retrieval plan exactly, and it keeps the whole stack on one AWS-native auth story. But at 6 test chunks (and even at a real personal-KB scale of a few hundred), you're paying Serverless's OCU minimum to hold almost nothing. Two honest paths: (a) stand up OpenSearch Serverless now anyway, since operating it is itself part of what you're here to learn, and tear the collection down when not actively using it to avoid idle cost; or (b) prototype retrieval logic against FAISS locally first (free, instant iteration), and stand up OpenSearch Serverless once the retrieval logic itself is validated, so paid infrastructure time is spent confirming a design that already works rather than debugging it live.
