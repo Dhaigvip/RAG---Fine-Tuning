@@ -69,9 +69,10 @@ import numpy as np
 from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder
 
-from embed import embed_text, REGION, PROFILE
+import query_cache
+from embed import embed_text, REGION, PROFILE, MODEL_ID as EMBED_MODEL_ID
 from faiss_search import load_index
-from query_transform import transform_query_for_embedding
+from query_transform import transform_query_for_embedding, QUERY_TRANSFORM, HYDE_MODEL_ID
 
 RRF_K = 60            # standard RRF constant
 CANDIDATE_POOL = 10   # fused candidates sent to the reranker
@@ -171,7 +172,7 @@ def bm25_rank(query: str, metadata: list) -> list:
     return list(np.argsort(scores)[::-1])
 
 
-def vector_rank(query: str, index, k: int) -> list:
+def vector_rank(query: str, index, k: int, cache: dict = None) -> list:
     """Return chunk indices ranked best-to-worst by FAISS vector similarity.
 
     The exact mirror image of bm25_rank: this function embeds the query
@@ -191,9 +192,33 @@ def vector_rank(query: str, index, k: int) -> list:
     corpus is phrased, embeds closer to the real match than a terse question
     does), with a built-in fallback to the raw query on any failure. BM25
     above deliberately does NOT go through this — see
-    docs/query-transformation-strategies.md."""
+    docs/query-transformation-strategies.md.
+
+    Added Sept 14 (evaluation harness): optional `cache` dict (see
+    query_cache.py) — when given, skips BOTH the HyDE generation call and
+    the embedding call entirely on a hit, instead of re-triggering two real
+    Bedrock calls (one of them non-deterministic) for a query that's been
+    embedded before under the exact same transform mode and models.
+    cache=None (the default) preserves the exact existing behavior for
+    interactive/CLI use — always embeds fresh, so HyDE's natural variation
+    is preserved there; caching is opt-in, used by evaluate_retrieval.py
+    specifically because it re-runs the same fixed question set repeatedly.
+    See docs/evaluation-strategies.md for the full reasoning."""
+    cache_key = None
+    if cache is not None:
+        cache_key = query_cache.cache_key(query, QUERY_TRANSFORM, EMBED_MODEL_ID, HYDE_MODEL_ID)
+        cached_vector = query_cache.get_cached_vector(cache, cache_key)
+        if cached_vector is not None:
+            query_vector = np.array([cached_vector], dtype="float32")
+            _, indices = index.search(query_vector, k)
+            return [int(i) for i in indices[0] if i != -1]
+
     embedding_input = transform_query_for_embedding(query)
     query_vector, _ = embed_text(embedding_input)
+
+    if cache is not None:
+        query_cache.set_cached_vector(cache, cache_key, query_vector)
+
     query_vector = np.array([query_vector], dtype="float32")
     _, indices = index.search(query_vector, k)
     return [int(i) for i in indices[0] if i != -1]
@@ -338,20 +363,37 @@ def promote_to_parents(reranked_children: list, child_metadata: list, top_k: int
     return promoted
 
 
-def search(query: str):
+def search(query: str, verbose: bool = True, cache: dict = None):
+    """Run the full retrieval pipeline for one query.
+
+    Added Sept 14 (evaluation harness): `verbose` (default True, so every
+    existing CLI/manual-testing call to search() behaves exactly as before)
+    lets evaluate_retrieval.py run this in a loop over a whole eval set
+    without a wall of BM25/vector/RRF debug printing per question — see
+    docs/evaluation-strategies.md. Also added: this now RETURNS the promoted
+    (parent_id, score) list (empty list when nothing passed the relevance
+    threshold) instead of only printing it, so a caller can actually check
+    the result programmatically rather than eyeballing stdout — the eval
+    harness is exactly that caller.
+
+    Also added: `cache` (default None, unchanged behavior) is passed straight
+    through to vector_rank() — see its docstring and query_cache.py for why
+    this exists (skip redundant HyDE + embedding Bedrock calls on repeated
+    eval runs) and why it's opt-in rather than the default."""
     index, child_metadata = load_index()
     parents = load_parents()
 
     bm25_ranked = bm25_rank(query, child_metadata)
-    vector_ranked = vector_rank(query, index, k=len(child_metadata))
+    vector_ranked = vector_rank(query, index, k=len(child_metadata), cache=cache)
     fused = reciprocal_rank_fusion([bm25_ranked, vector_ranked])
     candidate_indices = [idx for idx, _ in fused[:CANDIDATE_POOL]]
 
-    print(f"\nQuery: {query!r}")
-    print(f"BM25 top:    {[child_metadata[i]['source_file'] for i in bm25_ranked[:3]]}")
-    print(f"Vector top:  {[child_metadata[i]['source_file'] for i in vector_ranked[:3]]}")
-    print(f"RRF-fused candidates -> reranker ({RERANK_BACKEND}): "
-          f"{[child_metadata[i]['source_file'] for i in candidate_indices]}")
+    if verbose:
+        print(f"\nQuery: {query!r}")
+        print(f"BM25 top:    {[child_metadata[i]['source_file'] for i in bm25_ranked[:3]]}")
+        print(f"Vector top:  {[child_metadata[i]['source_file'] for i in vector_ranked[:3]]}")
+        print(f"RRF-fused candidates -> reranker ({RERANK_BACKEND}): "
+              f"{[child_metadata[i]['source_file'] for i in candidate_indices]}")
 
     # Rerank the FULL candidate pool (not just FINAL_TOP_K) — promotion below
     # can collapse multiple children onto one parent via dedup, so slicing to
@@ -360,26 +402,30 @@ def search(query: str):
     reranked_children = rerank(query, candidate_indices, child_metadata, top_k=len(candidate_indices))
 
     if not reranked_children:
-        print(f"\nNo candidates passed the relevance threshold — nothing confidently "
-              f"relevant found for this query in the current corpus.\n")
-        return
+        if verbose:
+            print(f"\nNo candidates passed the relevance threshold — nothing confidently "
+                  f"relevant found for this query in the current corpus.\n")
+        return []
 
     promoted = promote_to_parents(reranked_children, child_metadata, top_k=FINAL_TOP_K)
 
-    print(f"\n{len(reranked_children)} child match(es) passed the relevance threshold "
-          f"-> {len(promoted)} unique parent(s) after promotion (requested {FINAL_TOP_K}):\n")
-    for rank, (parent_id, score) in enumerate(promoted, start=1):
-        parent = parents[parent_id]
-        # Show which child actually matched, for transparency/debugging — the
-        # first reranked child whose parent_id equals this parent's is exactly
-        # the one promote_to_parents() picked (same "first occurrence wins" rule).
-        matched_child_idx = next(i for i, _ in reranked_children if child_metadata[i]["parent_id"] == parent_id)
-        child_preview = child_metadata[matched_child_idx]["text"].replace("\n", " ")[:100]
-        print(f"{rank}. relevance={score:.4f}  [{parent['source_file']}] {parent['header_path'] or '(no header)'}")
-        print(f"   matched via child: {child_preview}...")
-        # ...but what's actually returned as context is the PARENT's full text.
-        parent_preview = parent["text"].replace("\n", " ")[:200]
-        print(f"   parent context:    {parent_preview}...\n")
+    if verbose:
+        print(f"\n{len(reranked_children)} child match(es) passed the relevance threshold "
+              f"-> {len(promoted)} unique parent(s) after promotion (requested {FINAL_TOP_K}):\n")
+        for rank, (parent_id, score) in enumerate(promoted, start=1):
+            parent = parents[parent_id]
+            # Show which child actually matched, for transparency/debugging — the
+            # first reranked child whose parent_id equals this parent's is exactly
+            # the one promote_to_parents() picked (same "first occurrence wins" rule).
+            matched_child_idx = next(i for i, _ in reranked_children if child_metadata[i]["parent_id"] == parent_id)
+            child_preview = child_metadata[matched_child_idx]["text"].replace("\n", " ")[:100]
+            print(f"{rank}. relevance={score:.4f}  [{parent['source_file']}] {parent['header_path'] or '(no header)'}")
+            print(f"   matched via child: {child_preview}...")
+            # ...but what's actually returned as context is the PARENT's full text.
+            parent_preview = parent["text"].replace("\n", " ")[:200]
+            print(f"   parent context:    {parent_preview}...\n")
+
+    return promoted
 
 
 if __name__ == "__main__":

@@ -1,0 +1,90 @@
+[
+  {
+    "id": "docker-01",
+    "query": "How do I stop and remove containers with docker compose, including the volumes?",
+    "expected_source_file": "note1-flat.md",
+    "expected_header_contains": null,
+    "difficulty": "exact",
+    "note": "near-exact wording of 'docker compose down' / '-v to also drop volumes' line"
+  },
+  {
+    "id": "docker-02",
+    "query": "Why doesn't my container pick up changes after I edit the Dockerfile?",
+    "expected_source_file": "note1-flat.md",
+    "expected_header_contains": null,
+    "difficulty": "paraphrase",
+    "note": "paraphrase of the build-cache gotcha (needs --build, not a plain up)"
+  },
+  {
+    "id": "sysdesign-lb-01",
+    "query": "What's the difference between layer 4 and layer 7 load balancing?",
+    "expected_source_file": "note2-nested.md",
+    "expected_header_contains": "Layer 4 vs Layer 7",
+    "difficulty": "exact",
+    "note": "near-exact match of the header wording itself"
+  },
+  {
+    "id": "sysdesign-lb-02",
+    "query": "Why can't a network load balancer route requests based on the URL path?",
+    "expected_source_file": "note2-nested.md",
+    "expected_header_contains": "Layer 4 vs Layer 7",
+    "difficulty": "paraphrase",
+    "note": "paraphrase requiring the L4-can't-see-payload reasoning, not the term 'layer 4' itself"
+  },
+  {
+    "id": "sysdesign-cache-01",
+    "query": "What's the difference between cache-aside and write-through caching?",
+    "expected_source_file": "note2-nested.md",
+    "expected_header_contains": "Caching",
+    "difficulty": "exact",
+    "note": "near-exact match of both section header names"
+  },
+  {
+    "id": "python-venv-01",
+    "query": "How do I create and activate a virtual environment on Windows?",
+    "expected_source_file": "note3-lists-code.md",
+    "expected_header_contains": "Virtual Environments",
+    "difficulty": "exact",
+    "note": "near-exact match of the venv commands list"
+  },
+  {
+    "id": "python-deps-01",
+    "query": "Which Python dependency management tool has the fastest install times?",
+    "expected_source_file": "note3-lists-code.md",
+    "expected_header_contains": "Dependency Management",
+    "difficulty": "paraphrase",
+    "note": "answer lives inside a markdown table (uv / 'Very fast'), not prose"
+  },
+  {
+    "id": "git-stash-01",
+    "query": "how do I clean up branches and stashes",
+    "expected_source_file": "note4-many-small.md",
+    "expected_header_contains": null,
+    "difficulty": "paraphrase",
+    "note": "the original motivating paraphrase test case from reranking-strategies.md / query-transformation-strategies.md"
+  },
+  {
+    "id": "git-tag-01",
+    "query": "How do I create an annotated git tag with a message?",
+    "expected_source_file": "note4-many-small.md",
+    "expected_header_contains": null,
+    "difficulty": "exact",
+    "note": "near-exact match of 'git tag -a v1.2.0 -m message', the original high-scoring keyword query's sibling"
+  },
+  {
+    "id": "systems-thinking-01",
+    "query": "Why does a long feedback delay make a system oscillate?",
+    "expected_source_file": "note5-no-headers.md",
+    "expected_header_contains": null,
+    "difficulty": "exact",
+    "note": "note5 has no headers at all (header_path should be empty/null) — deliberately exercises that edge case"
+  },
+  {
+    "id": "systems-thinking-02",
+    "query": "Why doesn't tweaking a KPI target fix a fundamentally broken system?",
+    "expected_source_file": "note5-no-headers.md",
+    "expected_header_contains": null,
+    "difficulty": "paraphrase",
+    "note": "paraphrase of the goal-vs-parameter leverage point idea"
+  }
+]
