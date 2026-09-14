@@ -25,6 +25,12 @@ parent-child-retrieval.md for the full explanations):
    catches paraphrases/synonyms that BM25 misses entirely (calls Bedrock
    for the query embedding regardless of which rerank backend is active —
    embeddings were never affected by the SCP block, only rerank models).
+   As of Sept 14, what actually gets embedded is the query AFTER
+   query_transform.py's transform_query_for_embedding() — by default that's
+   a HyDE-generated hypothetical answer, not the raw query text, aimed
+   directly at the paraphrase-vs-keyword score gap this project already
+   measured (+4.90 vs +0.53 for the same correct chunk — see
+   reranking-strategies.md and query-transformation-strategies.md).
 4. Reciprocal Rank Fusion (RRF): merge the two ranked lists using RANKS,
    not raw scores — BM25 scores and cosine similarities live on
    incomparable scales, but ranks are always comparable.
@@ -65,6 +71,7 @@ from sentence_transformers import CrossEncoder
 
 from embed import embed_text, REGION, PROFILE
 from faiss_search import load_index
+from query_transform import transform_query_for_embedding
 
 RRF_K = 60            # standard RRF constant
 CANDIDATE_POOL = 10   # fused candidates sent to the reranker
@@ -176,8 +183,17 @@ def vector_rank(query: str, index, k: int) -> list:
     bm25_rank and vector_rank are deliberately two independent signals
     computed from two different representations of the same chunk (its words
     vs. its embedding) — that's why fusing them below catches more than
-    either alone: they're blind to different things, not redundant."""
-    query_vector, _ = embed_text(query)
+    either alone: they're blind to different things, not redundant.
+
+    Added Sept 14 (query transformation): what actually gets embedded here
+    is transform_query_for_embedding(query), not the raw query directly —
+    by default that's HyDE (a generated hypothetical answer, phrased like the
+    corpus is phrased, embeds closer to the real match than a terse question
+    does), with a built-in fallback to the raw query on any failure. BM25
+    above deliberately does NOT go through this — see
+    docs/query-transformation-strategies.md."""
+    embedding_input = transform_query_for_embedding(query)
+    query_vector, _ = embed_text(embedding_input)
     query_vector = np.array([query_vector], dtype="float32")
     _, indices = index.search(query_vector, k)
     return [int(i) for i in indices[0] if i != -1]

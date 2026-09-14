@@ -1,0 +1,31 @@
+# Query Transformation Strategies — Reference
+
+## Problem statement
+Vector search compares the QUERY's embedding against each CHUNK's embedding — but a terse question and a well-written answer are phrased very differently, and this project has direct evidence of what that costs. From the reranking-strategies.md two-query test, the exact same correct chunk (Git Commands, tags section) scored **+4.8959** for the near-exact-keyword query `"git tag"`, but only **+0.5289** for the paraphrased query `"how do I clean up branches and stashes"` — same right answer, same corpus, but a much weaker match once the query's wording drifted from the document's wording.
+
+That gap matters more than it might look: it happens at the RETRIEVAL stage (BM25 + vector search), *before* reranking ever runs. Reranking can only re-score whatever candidates retrieval already surfaced — it can't rescue a genuinely correct chunk that never made the candidate pool in the first place because its embedding similarity was too weak relative to other chunks. So the fix belongs upstream, in how the query itself gets turned into something to search with.
+
+## Solution
+Transform the query before embedding it, so what actually gets compared against the corpus is phrased more like the corpus is phrased.
+
+## Landscape of query transformation techniques
+
+**HyDE (Hypothetical Document Embeddings) — chosen.** Ask an LLM to write a short, plausible-sounding passage that would answer the query — it does *not* need to be factually correct, only phrased the way a real answer document would be. Embed that generated passage instead of the raw query for the vector-search leg. Because the generated text is written in declarative, answer-shaped language (much closer to how the corpus itself is written) rather than question-shaped language, its embedding tends to land closer to the actual matching chunk. Directly targets the exact gap measured above: a paraphrased *question* underperforms, but a paraphrased question expanded into answer-shaped *prose* shouldn't.
+
+**Multi-query fan-out.** Ask an LLM to generate several reformulations of the query, run retrieval separately for each, then fuse all the result lists (the same Reciprocal Rank Fusion already used to combine BM25 + vector search). More robust to any single bad reformulation since it's an ensemble, but multiplies the embedding + search cost by the number of reformulations, and the fusion logic gets more complex (fusing N ranked lists, not 2). Better suited to broad/ambiguous queries with several genuinely different good answers — not the typical shape of a query against a personal notes KB, where there's usually one specific right chunk.
+
+**Step-back prompting.** Ask an LLM to generate a more general/abstract version of the query first (e.g., "how does TCP handle packet loss" → "what is TCP congestion control"), retrieve broader background context with that, then answer the specific question using it. Designed for questions that need conceptual grounding before the specific answer makes sense. Rejected for now: this personal-notes corpus is mostly direct, specific lookups ("git tag", "docker compose command") rather than layered conceptual questions that benefit from a broader first pass — worth revisiting if real notes turn out to include more conceptual/background-heavy content than the test set does.
+
+**Query decomposition.** Split a multi-part question into sub-questions, retrieve for each separately, combine the results. Only pays off for genuinely multi-hop questions ("compare X's approach to Y's, then explain Z"). Rejected: queries against a personal notes KB are overwhelmingly single-intent lookups, so there's no multi-hop problem to solve here yet.
+
+## Chosen design
+- **HyDE only**, via a new `query_transform.py`. `transform_query_for_embedding(query)` dispatches on `TOOL_RAG_QUERY_TRANSFORM` (`none` | `hyde`, default `hyde`) and is called from `hybrid_search.py`'s `vector_rank()`.
+- **Why BM25 stays on the raw query**: BM25 is exact term matching — it benefits from the user's actual words (names, commands, exact terms), and a generated hypothetical passage could easily introduce *different* wording that dilutes rather than helps keyword matching. HyDE only ever replaces the embedding input for the vector-search leg; the two retrieval signals stay independent, which is the same reasoning that justified fusing BM25 + vector search as two independent signals in the first place.
+- **Model choice**: `anthropic.claude-3-haiku-20240307-v1:0` — confirmed directly invocable in `eu-central-1` with no cross-region inference profile required. The newer Claude Haiku 4.5 needs an `eu.`/`global.`-routed inference profile to be used in this region at all — extra IAM surface this project has no reason to take on for a task this small, especially given the SCP precedent from reranking (see reranking-strategies.md) of a Bedrock model type getting blocked outright. Same boto3/IAM stack as embeddings — no new vendor or credential.
+- **Graceful fallback, not a hard dependency**: any failure generating the hypothetical document (throttling, access denial, an SCP block, network) falls back to embedding the raw query instead of crashing `search()` — mirrors reranking's "degrade, don't crash" philosophy. `TOOL_RAG_QUERY_TRANSFORM=none` disables this entirely if HyDE turns out not to be worth its added latency/cost once tested against real notes.
+
+## What's deferred
+Multi-query fan-out and step-back prompting are both real, documented alternatives (see above) — not implemented because the current corpus and query shapes (short, direct, single-intent lookups) don't call for them yet. Revisit multi-query specifically if real notes introduce genuinely ambiguous queries with multiple valid answers; revisit step-back if real notes include more conceptual/background material than the manufactured test set does.
+
+## Verification
+Not yet run against real data — the target test case is the exact paraphrased query that motivated this (`"how do I clean up branches and stashes"`, previously scoring +0.5289 pre-HyDE), to see whether HyDE measurably improves that specific gap. Pending real output.
