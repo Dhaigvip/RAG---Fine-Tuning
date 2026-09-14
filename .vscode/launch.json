@@ -1,22 +1,32 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
+            "name": "Python: Current File",
+            "type": "python",
             "request": "launch",
             "program": "${file}",
-            "console": "integratedTerminal"
+            "console": "externalTerminal",
+            "justMyCode": true,
+            "args": []
         },
         {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
+            "name": "FAISS: Build Index",
+            "type": "python",
             "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
+            "program": "${workspaceFolder}\\RAG\\faiss_search.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": ["--build"]
+        },
+        {
+            "name": "FAISS: Search Query",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\RAG\\faiss_search.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": ["what is machine learning"]
         }
     ]
 }
