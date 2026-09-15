@@ -28,12 +28,21 @@ prompting, query decomposition) and why HyDE was chosen for this project is
 documented in docs/query-transformation-strategies.md — this file is just
 the mechanism.
 
-Model choice: anthropic.claude-3-haiku-20240307-v1:0 — confirmed directly
-invocable in eu-central-1 with NO cross-region inference profile required
-(unlike the newer Claude Haiku 4.5, which needs an "eu."/"global." routed
-inference profile in this region — extra IAM surface this project doesn't
-need for a task this small). Same boto3/IAM stack already used for
-embeddings, no new vendor or credential.
+Model choice, updated (Sept 15, explicit standing instruction — supersedes
+the note below): eu.anthropic.claude-haiku-4-5-20251001-v1:0 (Claude Haiku
+4.5 via the "eu." cross-region inference profile), now used for every
+Bedrock Claude call in this project. Same boto3/IAM stack as embeddings,
+no new vendor — but this DOES take on the "eu."-routed inference profile
+IAM surface the original note below deliberately avoided; not yet confirmed
+working end-to-end for this specific call, since HyDE has only actually
+fired using the older direct-invoke model so far (see Verification in
+docs/query-transformation-strategies.md) — watch for an AccessDenied /
+ValidationException here specifically if the profile isn't authorized.
+
+Original reasoning (superseded, kept for the record): anthropic.claude-3-
+haiku-20240307-v1:0 was chosen because it's confirmed directly invocable in
+eu-central-1 with NO cross-region inference profile required, avoiding the
+extra IAM surface a "eu."/"global." routed inference profile needs.
 
 Requires: boto3 (already a dependency via embed.py)
 """
@@ -48,9 +57,9 @@ from embed import REGION, PROFILE
 # "none" disables this entirely (embed the raw query, old behavior).
 # "hyde" is the default — see the problem statement above for why it's worth
 # the extra LLM call by default rather than opt-in.
-QUERY_TRANSFORM = os.environ.get("TOOL_RAG_QUERY_TRANSFORM", "none")
+QUERY_TRANSFORM = os.environ.get("TOOL_RAG_QUERY_TRANSFORM", "hyde")
 
-HYDE_MODEL_ID = os.environ.get("TOOL_RAG_HYDE_MODEL", "eu.anthropic.claude-haiku-4-5-20251001-v1:0")
+HYDE_MODEL_ID = os.environ.get("TOOL_RAG_HYDE_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
 HYDE_MAX_TOKENS = int(os.environ.get("TOOL_RAG_HYDE_MAX_TOKENS", "200"))
 
 HYDE_PROMPT_TEMPLATE = (

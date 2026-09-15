@@ -95,6 +95,12 @@ This doc has two halves: a **reference** (sections 1–10 below) explaining *why
 - [ ] Faithfulness / Response Relevancy run via RAGAS — blocked on the generation layer existing (Sept 15–16), same as the hand-rolled equivalents
 - [ ] Explicit decision recorded on whether to keep both (hand-rolled + RAGAS) long-term, or standardize on one, once both have real numbers to compare — not started
 
+**TruLens evaluation** (see section 12 above)
+- [ ] `trulens-eval` (or current package name) installed and a Bedrock-backed feedback function wired up — not started; blocked on a live application existing, not just deferred by choice
+- [ ] FastAPI endpoint from the generation layer (Sept 15–16) instrumented so TruLens actually has real traces to observe — blocked on Sept 15–16 work
+- [ ] At least one feedback function (groundedness/faithfulness or relevance) running continuously over live queries, with the dashboard actually used to inspect a real trace end-to-end — not started
+- [ ] Explicit decision recorded on whether TruLens's dashboard/observability adds enough value over plain logging (`hybrid_search.py`'s existing per-query print output, section 9) to justify running it, once there's real traffic to point it at — not started
+
 **Observability**
 - [x] Retrieved chunks, scores, and final answers logged per query (at least in dev) — `hybrid_search.py` prints BM25 top, vector top, RRF-fused candidates, and final reranked results with scores per query (now optional via `verbose=False` for batch eval runs, default still on)
 

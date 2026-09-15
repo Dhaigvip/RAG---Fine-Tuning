@@ -1,0 +1,163 @@
+{
+  "timestamp": "2026-09-14T15:13:16.438690+00:00",
+  "overall": {
+    "hit_rate": 0.9090909090909091,
+    "mrr": 0.9090909090909091,
+    "count": 11
+  },
+  "by_difficulty": {
+    "exact": {
+      "hit_rate": 1.0,
+      "mrr": 1.0,
+      "count": 6
+    },
+    "paraphrase": {
+      "hit_rate": 0.8,
+      "mrr": 0.8,
+      "count": 5
+    }
+  },
+  "per_question": [
+    {
+      "id": "docker-01",
+      "query": "How do I stop and remove containers with docker compose, including the volumes?",
+      "difficulty": "exact",
+      "expected_source_file": "note1-flat.md",
+      "expected_header_contains": null,
+      "returned": [
+        "note1-flat.md :: Docker Compose Cheatsheet"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "docker-02",
+      "query": "Why doesn't my container pick up changes after I edit the Dockerfile?",
+      "difficulty": "paraphrase",
+      "expected_source_file": "note1-flat.md",
+      "expected_header_contains": null,
+      "returned": [],
+      "hit": false,
+      "rank": null,
+      "reciprocal_rank": 0.0
+    },
+    {
+      "id": "sysdesign-lb-01",
+      "query": "What's the difference between layer 4 and layer 7 load balancing?",
+      "difficulty": "exact",
+      "expected_source_file": "note2-nested.md",
+      "expected_header_contains": "Layer 4 vs Layer 7",
+      "returned": [
+        "note2-nested.md :: System Design Notes > Load Balancing > Layer 4 vs Layer 7"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "sysdesign-lb-02",
+      "query": "Why can't a network load balancer route requests based on the URL path?",
+      "difficulty": "paraphrase",
+      "expected_source_file": "note2-nested.md",
+      "expected_header_contains": "Layer 4 vs Layer 7",
+      "returned": [
+        "note2-nested.md :: System Design Notes > Load Balancing > Layer 4 vs Layer 7"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "sysdesign-cache-01",
+      "query": "What's the difference between cache-aside and write-through caching?",
+      "difficulty": "exact",
+      "expected_source_file": "note2-nested.md",
+      "expected_header_contains": "Caching",
+      "returned": [
+        "note2-nested.md :: System Design Notes > Caching Strategies > Cache-Aside, Write-Through"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "python-venv-01",
+      "query": "How do I create and activate a virtual environment on Windows?",
+      "difficulty": "exact",
+      "expected_source_file": "note3-lists-code.md",
+      "expected_header_contains": "Virtual Environments",
+      "returned": [
+        "note3-lists-code.md :: Python Packaging Notes > Virtual Environments, Build Tools, Dependency Management"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "python-deps-01",
+      "query": "Which Python dependency management tool has the fastest install times?",
+      "difficulty": "paraphrase",
+      "expected_source_file": "note3-lists-code.md",
+      "expected_header_contains": "Dependency Management",
+      "returned": [
+        "note3-lists-code.md :: Python Packaging Notes > Virtual Environments, Build Tools, Dependency Management"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "git-stash-01",
+      "query": "how do I clean up branches and stashes",
+      "difficulty": "paraphrase",
+      "expected_source_file": "note4-many-small.md",
+      "expected_header_contains": null,
+      "returned": [
+        "note4-many-small.md :: Quick Reference: Git Commands > Branching, Rebasing, Stashing, Tags, Submodules"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "git-tag-01",
+      "query": "How do I create an annotated git tag with a message?",
+      "difficulty": "exact",
+      "expected_source_file": "note4-many-small.md",
+      "expected_header_contains": null,
+      "returned": [
+        "note4-many-small.md :: Quick Reference: Git Commands > Branching, Rebasing, Stashing, Tags, Submodules"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "systems-thinking-01",
+      "query": "Why does a long feedback delay make a system oscillate?",
+      "difficulty": "exact",
+      "expected_source_file": "note5-no-headers.md",
+      "expected_header_contains": null,
+      "returned": [
+        "note5-no-headers.md :: (no header)"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    },
+    {
+      "id": "systems-thinking-02",
+      "query": "Why doesn't tweaking a KPI target fix a fundamentally broken system?",
+      "difficulty": "paraphrase",
+      "expected_source_file": "note5-no-headers.md",
+      "expected_header_contains": null,
+      "returned": [
+        "note5-no-headers.md :: (no header)"
+      ],
+      "hit": true,
+      "rank": 1,
+      "reciprocal_rank": 1.0
+    }
+  ]
+}
