@@ -33,11 +33,27 @@ the note below): eu.anthropic.claude-haiku-4-5-20251001-v1:0 (Claude Haiku
 4.5 via the "eu." cross-region inference profile), now used for every
 Bedrock Claude call in this project. Same boto3/IAM stack as embeddings,
 no new vendor — but this DOES take on the "eu."-routed inference profile
-IAM surface the original note below deliberately avoided; not yet confirmed
-working end-to-end for this specific call, since HyDE has only actually
-fired using the older direct-invoke model so far (see Verification in
-docs/query-transformation-strategies.md) — watch for an AccessDenied /
-ValidationException here specifically if the profile isn't authorized.
+IAM surface the original note below deliberately avoided.
+
+Update Sept 16: the eu.-routed profile itself is now confirmed working
+end-to-end — a real /ask call (see docs/api-strategies.md's Verification
+section) hit this exact model id via generate.py with no AccessDenied /
+ValidationException. That confirms the profile is authorized on this
+account generically. It does NOT yet confirm HyDE's own call to it
+specifically — TOOL_RAG_QUERY_TRANSFORM has resolved to "none" in every
+real run pasted so far this session, so generate_hyde_document() itself
+still hasn't fired with this model in any witnessed output. Given the two
+functions share the same IAM path, that's now a low-risk gap rather than
+an open one, but it's still unverified until HyDE actually runs for real —
+see docs/query-transformation-strategies.md's Verification section.
+
+Also fixed here (Sept 16): HYDE_MODEL_ID's fallback default below had NOT
+actually been updated to match this docstring or .env.example's documented
+default — it was silently still pointing at the old Haiku 3 model. Caught
+because HyDE never fired this session (TOOL_RAG_QUERY_TRANSFORM=none), so
+the mismatch had no visible effect yet. Fixed to match the standing
+instruction and what .env.example already (incorrectly) claimed was the
+default.
 
 Original reasoning (superseded, kept for the record): anthropic.claude-3-
 haiku-20240307-v1:0 was chosen because it's confirmed directly invocable in
@@ -59,7 +75,7 @@ from embed import REGION, PROFILE
 # the extra LLM call by default rather than opt-in.
 QUERY_TRANSFORM = os.environ.get("TOOL_RAG_QUERY_TRANSFORM", "hyde")
 
-HYDE_MODEL_ID = os.environ.get("TOOL_RAG_HYDE_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
+HYDE_MODEL_ID = os.environ.get("TOOL_RAG_HYDE_MODEL", "eu.anthropic.claude-haiku-4-5-20251001-v1:0")
 HYDE_MAX_TOKENS = int(os.environ.get("TOOL_RAG_HYDE_MAX_TOKENS", "200"))
 
 HYDE_PROMPT_TEMPLATE = (

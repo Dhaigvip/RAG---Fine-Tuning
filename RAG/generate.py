@@ -62,9 +62,13 @@ from hybrid_search import search, load_parents
 # the "eu." cross-region inference profile), matching query_transform.py's
 # HYDE_MODEL_ID default. This takes on cross-region inference profile IAM
 # surface that query_transform.py's ORIGINAL model choice deliberately
-# avoided (see that file's docstring) — not yet confirmed working end-to-end
-# for generation specifically; watch for an AccessDenied/ValidationException
-# here if the profile isn't authorized for this account.
+# avoided (see that file's docstring).
+#
+# Confirmed working end-to-end (Sept 16): a real POST /ask call through
+# api.py hit this exact model id via call_generation_model() and returned a
+# grounded, correctly-cited answer with no AccessDenied/ValidationException
+# — see docs/api-strategies.md's Verification section for the real output.
+# The cross-region inference profile IS authorized for this account.
 GENERATION_MODEL_ID = os.environ.get("TOOL_RAG_GENERATION_MODEL", "eu.anthropic.claude-haiku-4-5-20251001-v1:0")
 GENERATION_MAX_TOKENS = int(os.environ.get("TOOL_RAG_GENERATION_MAX_TOKENS", "500"))
 MAX_RETRIES = 5  # same retry budget as embed.py
