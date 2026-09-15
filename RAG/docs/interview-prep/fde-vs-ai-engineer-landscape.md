@@ -1,0 +1,36 @@
+# FDE vs AI Engineer — Interview Landscape (researched Sept 15, 2026)
+
+## Problem statement
+The original interview-prep scope (Sept 13, see `topics-glossary.md` / `interview-questions.md`) was written for "a RAG/GenAI-focused role, general prep, no fixed interview date yet" — agentic systems were explicitly scoped OUT as "not core to a RAG-focused role." The goal has now changed (Sept 15): prep for **AI Engineer AND Forward Deployed Engineer (FDE) interviews specifically, on a 2-month timeline**. These are not the same role with different names — treating them as one target risks under-preparing for whichever one the real interview turns out to be. Before restructuring the plan, this doc grounds "what's actually tested" in real, current sources rather than assumption.
+
+## What the research found
+
+**FDE and AI Engineer test genuinely different things, confirmed by real job postings and interview-prep sources (not just guesswork):**
+
+- **AI Engineer** interviews weight RAG depth (already this project's core strength), agentic orchestration (tool calling, structured outputs, LangGraph/LlamaIndex-style patterns), fine-tuning strategy (LoRA/QLoRA, SFT vs DPO — already on this plan), model optimization/inference (quantization formats, vLLM/TGI, continuous batching — **not yet on this plan at all**), and MLOps/evaluation (RAG triad, LLM-as-judge, observability, guardrails — mostly already covered). One source calls RAG mastery, agentic systems, and MLOps evaluation the actual "separating factors" for senior candidates.
+- **FDE** interviews weight something substantially different: a 5–8 stage loop over 3–6 weeks — recruiter screen, hiring-manager screen, a coding round (production-quality code, practical problems like rate limiters/data pipelines/API integration — explicitly **less pure-LeetCode-algorithm-focused** than a typical SWE loop), a system-design/architecture round, a **decomposition / open-ended case study round** ("widely regarded as the most critical" — scoping a vague enterprise problem systematically, out loud), a **client-simulation/role-play round** (mandatory at several companies — filters for communication under pressure), a behavioral/values round, and sometimes a 4–8 hour take-home. One guide's framing, worth taking seriously: *"the FDE interview is not graded on the answer. It's graded on how you think through a problem you have never seen before."* Real Palantir/Anthropic/OpenAI FDE postings confirm this isn't hype — required qualifications explicitly name "problem decomposition," "comfort in dynamic, evolving environments," "radical ownership," and production code that ships in week one, alongside the technical stack (Python + one more typed language, SQL, AWS/GCP, APIs, Docker, CI/CD).
+
+**Net implication for this plan**: this project's hands-on RAG build is strong, directly-relevant AI Engineer material, and it already covers real infra-constraint war stories (the Bedrock rerank SCP block, the parent/child promotion bug, the HyDE env-var debugging saga) that are genuinely good decomposition-round material. But three things this plan does not yet touch at all are explicitly tested in these loops: **agentic/tool-calling systems** (currently deliberately scoped OUT as "lighter pass, not core" — that scoping decision no longer holds given FDE's emphasis), **open-ended case-study/decomposition practice** (a distinct rehearsable skill, not a knowledge gap — reading about it doesn't build it, only practicing scoping ambiguous problems out loud does), and **general system-design/coding-round practice beyond RAG-specific design** (rate limiters, data pipelines, API integration — FDE's coding round is explicitly broader than "design a RAG system").
+
+## Gap analysis against the current project docs
+
+**Already well covered** (`topics-glossary.md`, `interview-questions.md`, and the hands-on build itself): RAG end-to-end, chunking, embeddings, hybrid search, reranking (with a real infra-constraint story), query transformation, parent/child retrieval, retrieval evaluation (Hit Rate/MRR), generation with citations/refusal, context windows, observability, model drift, cost optimization, fallbacks/reliability, prompt injection, access control, compliance. Cross-checked against a public RAG-interview-question list (DataCamp, 34 questions across basic/intermediate/advanced/AI-engineer-specific tiers) — every one of that list's advanced/AI-engineer-tier questions this project doesn't already answer (CAG vs RAG, Adaptive/Agentic/CRAG/Self-RAG variants, late chunking) are minor namable variants, not gaps in understanding; the core mechanics transfer directly.
+
+**Genuine gaps, not yet addressed by this plan at all**:
+- Agentic systems / tool-calling / multi-step reasoning, beyond glossary-level definitions — currently the weakest point relative to what FDE loops actually test.
+- Case-study / problem-decomposition practice — a rehearsed *skill*, needs mock scenarios, not a doc to read.
+- Client-simulation / behavioral communication under pressure — same: needs rehearsal, not reading.
+- General (non-RAG) coding-round and system-design-round practice — rate limiters, data pipelines, API integration patterns.
+- Model optimization/inference topics (quantization, vLLM, continuous batching) — real AI Engineer interview content, zero current coverage.
+- SQL (window functions, optimization) and general cloud/Docker/CI/CD — likely lower risk given 15 years including Nordic Banking Systems' financial platforms and existing AWS/GCP architect certifications, but worth an explicit gut-check rather than assuming.
+
+## Open decisions (pending — see conversation)
+How much of the remaining ~2 months goes to closing these gaps vs. deepening the existing RAG/fine-tuning build depends on: which target (AI Engineer, FDE, or both, and in what proportion), whether specific companies/postings are already in view (their real loops can be researched precisely instead of prepped generically), and current baseline confidence on the generalist rounds (coding, system design, SQL) from day-job experience vs. needing dedicated refresher practice. Restructuring the day-by-day plan is deferred until these are settled, to avoid planning twice.
+
+## Sources
+- [Forward Deployed Engineer Interview: The Definitive 2026 Guide (FDE) — Exponent](https://www.tryexponent.com/blog/forward-deployed-engineer-interview-the-definitive-2026-guide-fde)
+- [Palantir Technologies — Forward Deployed AI Engineer (job posting)](https://jobs.lever.co/palantir/636fc05c-d348-4a06-be51-597cb9e07488)
+- [Palantir's Forward-Deployed Engineering Playbook: The Original Model Anthropic and OpenAI Are Copying — Perspective AI](https://getperspective.ai/blog/palantir-forward-deployed-engineering-playbook-anthropic-openai-copying)
+- [What is a Forward Deployed Engineer? Role, Skills & Salary — Analytics Vidhya](https://www.analyticsvidhya.com/blog/2026/08/what-is-a-forward-deployed-engineer/)
+- [Top 30 RAG Interview Questions and Answers for 2026 — DataCamp](https://www.datacamp.com/blog/rag-interview-questions)
+- [AI Engineer Interview Roadmap 2026 | RAG & Vector DBs — MockExperts](https://www.mockexperts.com/blog/2026-ai-engineer-interview-roadmap-rag-llms)
