@@ -1,5 +1,5 @@
 """
-test_generate.py — unit tests for generate.py's pure functions: resolve_sources,
+test_generate.py — unit tests for step05_generate.py's pure functions: resolve_sources,
 build_prompt, parse_citations, detect_refusal. All plain-data-in/plain-data-out
 (or plain-text-in/plain-data-out) — no Bedrock call, no FAISS, no search()
 involved anywhere in this file.
@@ -15,7 +15,7 @@ similar words without the actual phrase.
 Run: pytest   (from RAG/)
 """
 
-from generate import resolve_sources, build_prompt, parse_citations, detect_refusal, REFUSAL_PHRASE
+from step05_generate import resolve_sources, build_prompt, parse_citations, detect_refusal, REFUSAL_PHRASE
 
 
 # A small synthetic "parents" list, positionally indexed exactly like the

@@ -1,10 +1,10 @@
 """
-generate.py — the GENERATION half of the RAG pipeline: take search()'s
+step05_generate.py — the GENERATION half of the RAG pipeline: take search()'s
 retrieved parent chunks and turn them into an actual answer, grounded in
 those chunks, with citations back to which source(s) it drew from, and a
 refusal when the retrieved context doesn't actually answer the question.
 
-Problem statement: hybrid_search.py's search() only ever returns retrieved
+Problem statement: step04_hybrid_search.py's search() only ever returns retrieved
 chunks — nothing in this project has turned a chunk into an answer a person
 reads. Two separate risks sit ahead of that: (1) an LLM asked to answer will
 answer, from its own general knowledge if it has to, even when the provided
@@ -32,12 +32,12 @@ Solution, in order:
    in the output (substring match) so refusal is checkable in code, not
    just visible to a human reading the text.
 
-Requires: boto3 (already a dependency via embed.py / query_transform.py)
-Run `python hybrid_search.py <query>` at least once first to confirm
+Requires: boto3 (already a dependency via step02_embed.py / query_transform.py)
+Run `python step04_hybrid_search.py <query>` at least once first to confirm
 retrieval works before layering generation on top of it.
 
 Usage:
-    python generate.py <question text>
+    python step05_generate.py <question text>
 """
 
 import json
@@ -48,8 +48,8 @@ import time
 import boto3
 from botocore.exceptions import ClientError
 
-from embed import REGION, PROFILE
-from hybrid_search import search, load_parents
+from step02_embed import REGION, PROFILE
+from step04_hybrid_search import search, load_parents
 
 # Separate config from HyDE's model on purpose — see docs/generation-strategies.md
 # ("Model — separate config from HyDE"): HyDE's output is throwaway (never
@@ -65,13 +65,13 @@ from hybrid_search import search, load_parents
 # avoided (see that file's docstring).
 #
 # Confirmed working end-to-end (Sept 16): a real POST /ask call through
-# api.py hit this exact model id via call_generation_model() and returned a
+# step06_api.py hit this exact model id via call_generation_model() and returned a
 # grounded, correctly-cited answer with no AccessDenied/ValidationException
 # — see docs/api-strategies.md's Verification section for the real output.
 # The cross-region inference profile IS authorized for this account.
 GENERATION_MODEL_ID = os.environ.get("TOOL_RAG_GENERATION_MODEL", "eu.anthropic.claude-haiku-4-5-20251001-v1:0")
 GENERATION_MAX_TOKENS = int(os.environ.get("TOOL_RAG_GENERATION_MAX_TOKENS", "500"))
-MAX_RETRIES = 5  # same retry budget as embed.py
+MAX_RETRIES = 5  # same retry budget as step02_embed.py
 
 # The exact phrase the model is instructed to use when retrieved context
 # doesn't answer the question. Kept as a single constant so the prompt
@@ -185,7 +185,7 @@ def call_generation_model(query: str, sources: list) -> str:
     query_transform.py's generate_hyde_document(), which fails fast and
     falls back to the raw query on ANY error. That fail-fast choice makes
     sense for HyDE because it has a safe fallback; generation has no
-    fallback — it IS the output — so this follows embed.py's retry pattern
+    fallback — it IS the output — so this follows step02_embed.py's retry pattern
     instead. See docs/generation-strategies.md ("Retry on throttling, unlike
     HyDE") for the full reasoning.
 
@@ -230,7 +230,7 @@ def generate_answer(query: str, verbose: bool = True, cache: dict = None) -> dic
     didn't answer the question) rather than a bare "no" — useful for
     debugging retrieval gaps like docker-02 later.
 
-    `cache` is passed straight through to search() (see hybrid_search.py /
+    `cache` is passed straight through to search() (see step04_hybrid_search.py /
     query_cache.py) — default None preserves normal fresh-HyDE CLI behavior;
     a future eval harness for generation could opt in the same way
     evaluate_retrieval.py already does for retrieval.
@@ -296,4 +296,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         generate_answer(" ".join(sys.argv[1:]))
     else:
-        print("Usage: python generate.py <question text>")
+        print("Usage: python step05_generate.py <question text>")

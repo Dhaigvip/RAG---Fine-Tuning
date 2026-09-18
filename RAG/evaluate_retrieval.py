@@ -1,7 +1,7 @@
 """
 evaluate_retrieval.py — labeled-eval-set harness for the RETRIEVAL half of
 this pipeline (BM25 + vector search + RRF fusion + rerank + parent/child
-promotion). Scores hybrid_search.py's search() against known-correct
+promotion). Scores step04_hybrid_search.py's search() against known-correct
 answers instead of eyeballing one or two manual test queries.
 
 Problem statement: every retrieval-affecting change made so far (chunk
@@ -44,7 +44,7 @@ touch query embedding at all. Without caching, every re-run would burn a
 real HyDE generation call AND a real Titan embedding call per question for
 work whose result can't have changed — see query_cache.py's docstring for
 the full reasoning. This is the one place in the project that opts into
-that cache; the interactive CLI (`python hybrid_search.py <query>`) stays
+that cache; the interactive CLI (`python step04_hybrid_search.py <query>`) stays
 uncached on purpose, so ad hoc querying still gets HyDE's real variation.
 
 Run: python evaluate_retrieval.py   (from RAG/)
@@ -60,7 +60,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from hybrid_search import search, load_parents
+from step04_hybrid_search import search, load_parents
 from query_cache import load_cache, save_cache
 
 EVAL_SET_PATH = Path(__file__).parent / "eval" / "retrieval_eval_set.json"
@@ -81,7 +81,7 @@ def resolve_promoted(promoted: list, parents: list) -> list:
     actually compare against the eval set's expected_source_file /
     expected_header_contains — resolves each parent_id to its real
     source_file and header_path via the same load_parents() lookup
-    hybrid_search.py itself uses. Pure function (plain data in, plain data
+    step04_hybrid_search.py itself uses. Pure function (plain data in, plain data
     out) — easy to unit test with a synthetic parents list, no FAISS/AWS
     involved. See tests/test_evaluate_retrieval.py."""
     resolved = []

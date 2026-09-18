@@ -6,7 +6,7 @@ The unit you choose to embed and retrieve shapes everything downstream. This is 
 Split every N tokens with fixed overlap, no awareness of content structure. The naive baseline — cuts sentences and ideas mid-thought. Only worth it when there's no structure to exploit at all (raw scraped text with no headers).
 
 ## 2. Recursive / structure-aware splitting — **what we built**
-Split at natural boundaries (headers → paragraphs → sentences), falling to a smaller unit only when a piece is still too big. Implemented in `chunking.py`.
+Split at natural boundaries (headers → paragraphs → sentences), falling to a smaller unit only when a piece is still too big. Implemented in `step01_chunking.py`.
 
 ## 3. Semantic chunking
 Embed consecutive sentences and cut where embedding similarity between neighbors drops sharply — a topic-boundary detector. More adaptive than header-based splitting, but costs an embedding call per sentence just to decide boundaries. Mainly earns its keep on unstructured prose without headers — markdown notes already have free boundaries, so lower priority here.

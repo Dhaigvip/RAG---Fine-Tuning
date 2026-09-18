@@ -1,5 +1,5 @@
 """
-embed.py — generate embeddings for chunks via Bedrock Titan Text Embeddings v2.
+step02_embed.py — generate embeddings for chunks via Bedrock Titan Text Embeddings v2.
 
 Mechanism:
 1. Read an input .jsonl of chunks from output/ (defaults to child_chunks.jsonl —
@@ -11,7 +11,7 @@ Mechanism:
 3. Attach the returned embedding to the chunk record, alongside the token count
    Bedrock billed for that call (useful for cost awareness).
 4. Persist chunk + embedding + metadata to embedded_<input-name>.jsonl — the
-   artifact faiss_search.py's --build step reads from next.
+   artifact step03_faiss_search.py's --build step reads from next.
 
 What gets embedded (added Sept 14, parent/child retrieval stage 2):
 Per parent-child-retrieval.md's chosen design, CHILDREN are now the matching
@@ -27,8 +27,8 @@ Requires: boto3, with your AWS profile/credentials already configured
 (same profile you use for Bedrock KB).
 
 Usage:
-    python embed.py                    # embeds output/child_chunks.jsonl (default)
-    python embed.py chunks.jsonl        # embeds output/chunks.jsonl (parents) instead
+    python step02_embed.py                    # embeds output/child_chunks.jsonl (default)
+    python step02_embed.py chunks.jsonl        # embeds output/chunks.jsonl (parents) instead
 """
 
 import json
@@ -41,7 +41,7 @@ import boto3
 from botocore.exceptions import ClientError
 from dotenv import load_dotenv
 
-load_dotenv()  # reads .env from the current working directory (RAG\ when you run `python embed.py` from there)
+load_dotenv()  # reads .env from the current working directory (RAG\ when you run `python step02_embed.py` from there)
 
 REGION = os.environ["AWS_REGION"]          # required — no silent default, fail loudly if missing
 PROFILE = os.environ.get("AWS_PROFILE")    # optional — falls back to boto3's default credential chain if unset

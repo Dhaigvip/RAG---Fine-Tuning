@@ -55,9 +55,9 @@ This doc has two halves: a **reference** (sections 1–10 below) explaining *why
 ## Implementation Checklist
 
 **Ingestion**
-- [x] Document loaders preserve structure (headers/sections), not just raw text — `chunking.py` parses markdown headers into a `header_path` per chunk
+- [x] Document loaders preserve structure (headers/sections), not just raw text — `step01_chunking.py` parses markdown headers into a `header_path` per chunk
 - [ ] Per-chunk metadata captured: source, section, date, doc type — have `source_file`, `header_path`, `chunk_index`; no date/doc-type field yet (not needed for this single-domain test corpus, would matter for a mixed real corpus)
-- [x] Pipeline is idempotent/rerunnable (safe to re-run on the same corpus) — re-running `chunking.py`/`embed.py`/`faiss_search.py --build` regenerates cleanly, confirmed during the Sept 14 CRLF-corruption incident (re-running fixed it with no side effects)
+- [x] Pipeline is idempotent/rerunnable (safe to re-run on the same corpus) — re-running `step01_chunking.py`/`step02_embed.py`/`step03_faiss_search.py --build` regenerates cleanly, confirmed during the Sept 14 CRLF-corruption incident (re-running fixed it with no side effects)
 
 **Chunking**
 - [x] Recursive/structure-aware splitting, not naive fixed-character splitting
@@ -82,7 +82,7 @@ This doc has two halves: a **reference** (sections 1–10 below) explaining *why
 - [ ] Explicit "answer only from context, say when you don't know" instruction in the prompt — not yet built
 - [ ] Token budget for context vs question vs generation is deliberate, not maxed out by default — not yet built
 - [ ] Low temperature set for factual QA — not yet built
-- [ ] "No relevant context" is a handled path, not a forced hallucinated answer — not yet built (retrieval's own relevance threshold already returns zero results cleanly when nothing qualifies — `hybrid_search.py`'s `search()` — but there's no generation layer yet to wire that into a "say I don't know" response)
+- [ ] "No relevant context" is a handled path, not a forced hallucinated answer — not yet built (retrieval's own relevance threshold already returns zero results cleanly when nothing qualifies — `step04_hybrid_search.py`'s `search()` — but there's no generation layer yet to wire that into a "say I don't know" response)
 
 **Evaluation**
 - [x] Labeled eval set exists (real questions + expected answers/sources from your own corpus) — `eval/retrieval_eval_set.json`, 11 hand-written questions grounded in the actual 5-note test corpus, tagged `exact`/`paraphrase`
@@ -99,10 +99,10 @@ This doc has two halves: a **reference** (sections 1–10 below) explaining *why
 - [ ] `trulens-eval` (or current package name) installed and a Bedrock-backed feedback function wired up — not started; blocked on a live application existing, not just deferred by choice
 - [ ] FastAPI endpoint from the generation layer (Sept 15–16) instrumented so TruLens actually has real traces to observe — blocked on Sept 15–16 work
 - [ ] At least one feedback function (groundedness/faithfulness or relevance) running continuously over live queries, with the dashboard actually used to inspect a real trace end-to-end — not started
-- [ ] Explicit decision recorded on whether TruLens's dashboard/observability adds enough value over plain logging (`hybrid_search.py`'s existing per-query print output, section 9) to justify running it, once there's real traffic to point it at — not started
+- [ ] Explicit decision recorded on whether TruLens's dashboard/observability adds enough value over plain logging (`step04_hybrid_search.py`'s existing per-query print output, section 9) to justify running it, once there's real traffic to point it at — not started
 
 **Observability**
-- [x] Retrieved chunks, scores, and final answers logged per query (at least in dev) — `hybrid_search.py` prints BM25 top, vector top, RRF-fused candidates, and final reranked results with scores per query (now optional via `verbose=False` for batch eval runs, default still on)
+- [x] Retrieved chunks, scores, and final answers logged per query (at least in dev) — `step04_hybrid_search.py` prints BM25 top, vector top, RRF-fused candidates, and final reranked results with scores per query (now optional via `verbose=False` for batch eval runs, default still on)
 
 **Operating within real infrastructure constraints**
 - [x] At least one real example of designing around a governance/vendor constraint rather than hard-coding to it — Bedrock Rerank SCP block, see `reranking-strategies.md`

@@ -1,18 +1,18 @@
 """
-test_hybrid_search.py — unit tests for the pure-logic pieces of hybrid_search.py:
+test_hybrid_search.py — unit tests for the pure-logic pieces of step04_hybrid_search.py:
 apply_min_score() (the relevance-threshold filter) and reciprocal_rank_fusion().
 
 Both take plain Python data in and return plain Python data out — no AWS call,
 no cross-encoder model download, no FAISS index needed — so these run in well
 under a second and don't depend on any live retrieval pipeline. Importing the
-module does still run embed.py's module-level `REGION = os.environ["AWS_REGION"]`
+module does still run step02_embed.py's module-level `REGION = os.environ["AWS_REGION"]`
 lookup, so an .env with AWS_REGION set (which you already have) needs to be
 discoverable from wherever pytest runs — run from the RAG/ directory.
 
 Run: pip install pytest && pytest   (from RAG/)
 """
 
-from hybrid_search import apply_min_score, promote_to_parents, reciprocal_rank_fusion
+from step04_hybrid_search import apply_min_score, promote_to_parents, reciprocal_rank_fusion
 
 
 # ---- apply_min_score ----

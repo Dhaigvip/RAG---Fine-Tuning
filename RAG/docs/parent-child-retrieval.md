@@ -2,7 +2,7 @@
 
 ## Problem statement
 Chunk size is a tug-of-war between two different jobs, and one size can't win both:
-- **Matching precision wants chunks SMALL.** A chunk's embedding is one vector representing everything inside it. Our current chunks (`chunking.py`'s output, up to 700 tokens after sibling-merging) can hold three merged subsections in one chunk — so that chunk's embedding is a blend of all three topics. A query about just one of those subsections has to compete against noise from the other two baked into the same vector, and the match gets diluted. The bigger the chunk, the worse this gets.
+- **Matching precision wants chunks SMALL.** A chunk's embedding is one vector representing everything inside it. Our current chunks (`step01_chunking.py`'s output, up to 700 tokens after sibling-merging) can hold three merged subsections in one chunk — so that chunk's embedding is a blend of all three topics. A query about just one of those subsections has to compete against noise from the other two baked into the same vector, and the match gets diluted. The bigger the chunk, the worse this gets.
 - **Generation quality wants chunks LARGE.** Shrinking chunks to fix matching creates the opposite problem: a small, precise fragment handed to the LLM in isolation often lacks the surrounding context needed to actually answer the question — the LLM sees the trees but not the forest.
 
 These pull in opposite directions, so no single chunk size is correct for both retrieval and generation at once. That's the actual problem — not "what's the right chunk size" (there isn't one), but "why are we forcing one unit to do two different jobs."
@@ -14,7 +14,7 @@ Stop using one chunk for both jobs. Split the two roles: search over something S
 
 **Child granularity** — how small the searched unit is:
 - *Sentence-level*: smallest possible, most precise matching, but very fine-grained — many children per parent, higher embedding-call count and index size for a personal-notes corpus this small.
-- *Paragraph/block-level* — **chosen**: reuses `chunking.py`'s existing `split_into_blocks()` (already paragraph- and code-fence-aware), grouped up to a small token budget. Natural unit size for markdown notes; no new splitting logic needed, just a smaller budget applied to the same function.
+- *Paragraph/block-level* — **chosen**: reuses `step01_chunking.py`'s existing `split_into_blocks()` (already paragraph- and code-fence-aware), grouped up to a small token budget. Natural unit size for markdown notes; no new splitting logic needed, just a smaller budget applied to the same function.
 - *Fixed small token window (e.g. 100 tokens, no structural awareness)*: simplest to reason about, but reintroduces the exact "cuts mid-thought" problem structure-aware splitting was built to avoid — rejected for the same reason fixed-size chunking was rejected originally.
 
 **Parent granularity** — what gets returned once a child matches:
@@ -27,7 +27,7 @@ Stop using one chunk for both jobs. Split the two roles: search over something S
 ## Chosen design
 - Parents = existing `chunks.jsonl` (unchanged, still section-level, sibling-merged, breadcrumb-prefixed).
 - Children = each parent's text re-split at paragraph/code-fence boundaries into pieces under `CHILD_MAX_TOKENS` (~150 tokens — roughly 1/5 of the parent budget), each carrying its own copy of the parent's breadcrumb (same reasoning as parents: an isolated child shouldn't lose its topic context either).
-- Each child stores `parent_id` = the parent's **position in the `chunks.jsonl` list** (0-indexed) — not the existing per-file `chunk_index` field, which resets to 0 for every file and was never meant to be globally unique. `parent_id` is chosen to exactly match the row order chunks end up in once embedded and indexed (embed.py and faiss_search.py both preserve list order), so `metadata[parent_id]` at retrieval time is a direct, O(1) lookup — no separate ID-matching logic needed.
+- Each child stores `parent_id` = the parent's **position in the `chunks.jsonl` list** (0-indexed) — not the existing per-file `chunk_index` field, which resets to 0 for every file and was never meant to be globally unique. `parent_id` is chosen to exactly match the row order chunks end up in once embedded and indexed (step02_embed.py and step03_faiss_search.py both preserve list order), so `metadata[parent_id]` at retrieval time is a direct, O(1) lookup — no separate ID-matching logic needed.
 - **Embedding target changes**: children get embedded and indexed (that's what search matches against now), not parents directly. Parents stay as plain lookup records.
 - **Retrieval-time promotion**: hybrid search + rerank operate on children as before, but the final step maps each surviving child back to its `parent_id`, deduplicates (multiple matching children can share one parent), and returns parent text as the actual context — this is the "small-to-big" swap.
 
@@ -36,9 +36,9 @@ Sentence-level children and cross-file/whole-document parents are both real, doc
 
 ## Stage 2 — wiring children into embedding, indexing, and retrieval (added Sept 14)
 
-**Problem**: stage 1 (`chunking.py`) produces `child_chunks.jsonl`, but nothing embeds it, indexes it, or knows how to map a matched child back to its parent — the data just sits there.
+**Problem**: stage 1 (`step01_chunking.py`) produces `child_chunks.jsonl`, but nothing embeds it, indexes it, or knows how to map a matched child back to its parent — the data just sits there.
 
-**Solution**: `embed.py`'s input file is now a CLI argument, defaulting to `child_chunks.jsonl` (children are the matching unit; parents are never embedded — they stay plain lookup records, per the chosen design above). `faiss_search.py` builds its index/metadata over the embedded children by default (still generic enough to index parents if ever needed). `hybrid_search.py` runs BM25 + vector search + RRF + rerank over children exactly as before, then a new `promote_to_parents()` step maps surviving children to their parent via `parent_id`, dedups, and returns the parent's full text as the actual context.
+**Solution**: `step02_embed.py`'s input file is now a CLI argument, defaulting to `child_chunks.jsonl` (children are the matching unit; parents are never embedded — they stay plain lookup records, per the chosen design above). `step03_faiss_search.py` builds its index/metadata over the embedded children by default (still generic enough to index parents if ever needed). `step04_hybrid_search.py` runs BM25 + vector search + RRF + rerank over children exactly as before, then a new `promote_to_parents()` step maps surviving children to their parent via `parent_id`, dedups, and returns the parent's full text as the actual context.
 
 **A decision worth documenting — rerank/promote ordering**: `promote_to_parents()` must run on the reranker's *entire* filtered candidate pool, not just the final `FINAL_TOP_K`. If reranking were sliced to `FINAL_TOP_K` first, and two of those top-K children happened to share a parent, dedup would silently return fewer results than requested — even when a distinct-parent child was sitting just below the cutoff. Fix: call `rerank()` with `top_k=len(candidate_indices)` (the cross-encoder already scores every candidate regardless of `top_k` — this costs nothing extra), then let `promote_to_parents()` do its own dedup-then-slice to `FINAL_TOP_K` *unique parents*. Verified with a synthetic 3-parent/5-child fixture (two parents with 2 children each, monkeypatched retrieval/rerank) — confirms a low-scoring but distinct-parent child still makes the final top 3 instead of being crowded out by a duplicate.
 

@@ -1,5 +1,5 @@
 """
-hybrid_search.py — combine BM25 keyword search + FAISS vector search via
+step04_hybrid_search.py — combine BM25 keyword search + FAISS vector search via
 Reciprocal Rank Fusion, rerank the fused candidates, then PROMOTE surviving
 matches from their small child chunk up to their larger parent chunk before
 returning them. Two reranker BACKENDS are implemented side by side — see
@@ -16,12 +16,12 @@ Pick the backend with TOOL_RAG_RERANK_BACKEND=local|bedrock in .env.
 
 Mechanism, in order (see retrieval-concepts.md, reranking-strategies.md, and
 parent-child-retrieval.md for the full explanations):
-1. Load CHILD chunks + the FAISS index already built by faiss_search.py
+1. Load CHILD chunks + the FAISS index already built by step03_faiss_search.py
    --build (children are the matching unit — see parent-child-retrieval.md).
    Also load PARENTS (chunks.jsonl) as a plain, unembedded lookup list.
 2. BM25: score every child against the query by term matching — catches
    exact terms (names, commands, acronyms) that embeddings can blur.
-3. Vector search: same FAISS cosine-similarity search as faiss_search.py —
+3. Vector search: same FAISS cosine-similarity search as step03_faiss_search.py —
    catches paraphrases/synonyms that BM25 misses entirely (calls Bedrock
    for the query embedding regardless of which rerank backend is active —
    embeddings were never affected by the SCP block, only rerank models).
@@ -52,11 +52,11 @@ parent-child-retrieval.md for the full explanations):
    for what's shown.
 
 Requires: pip install rank-bm25 sentence-transformers
-Run `python embed.py` then `python faiss_search.py --build` first if you
-haven't already (embeds/indexes children by default — see embed.py).
+Run `python step02_embed.py` then `python step03_faiss_search.py --build` first if you
+haven't already (embeds/indexes children by default — see step02_embed.py).
 
 Usage:
-    python hybrid_search.py <query text>
+    python step04_hybrid_search.py <query text>
 """
 
 import json
@@ -70,8 +70,8 @@ from rank_bm25 import BM25Okapi
 from sentence_transformers import CrossEncoder
 
 import query_cache
-from embed import embed_text, REGION, PROFILE, MODEL_ID as EMBED_MODEL_ID
-from faiss_search import load_index
+from step02_embed import embed_text, REGION, PROFILE, MODEL_ID as EMBED_MODEL_ID
+from step03_faiss_search import load_index
 from query_transform import transform_query_for_embedding, QUERY_TRANSFORM, HYDE_MODEL_ID
 
 RRF_K = 60            # standard RRF constant
@@ -147,7 +147,7 @@ def load_parents() -> list:
     embedded or indexed (see parent-child-retrieval.md — only children are
     the matching unit), so this is just a flat JSON-lines read, no FAISS/
     embedding involved. A child's parent_id is its position in THIS list —
-    chunking.py guarantees that ordering matches embed.py/faiss_search.py's
+    step01_chunking.py guarantees that ordering matches step02_embed.py/step03_faiss_search.py's
     processing order for chunks.jsonl, so parents[parent_id] is a direct,
     O(1) lookup with no separate ID-matching logic needed."""
     lines = PARENTS_PATH.read_text(encoding="utf-8").splitlines()
@@ -179,7 +179,7 @@ def vector_rank(query: str, index, k: int, cache: dict = None) -> list:
     (embed_text) and compares that vector against every vector stored in the
     FAISS index via cosine similarity. It never looks at any chunk's raw text
     — from here, a chunk is purely a point in 1024-dimensional space. As of
-    Sept 14 the index holds CHILD vectors (see faiss_search.py).
+    Sept 14 the index holds CHILD vectors (see step03_faiss_search.py).
 
     bm25_rank and vector_rank are deliberately two independent signals
     computed from two different representations of the same chunk (its words
@@ -432,4 +432,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         search(" ".join(sys.argv[1:]))
     else:
-        print("Usage: python hybrid_search.py <query text>")
+        print("Usage: python step04_hybrid_search.py <query text>")

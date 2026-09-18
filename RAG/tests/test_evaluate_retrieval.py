@@ -72,7 +72,7 @@ def test_find_expected_rank_returns_none_on_a_genuine_miss():
 
 def test_find_expected_rank_on_empty_results():
     """search() returns [] when nothing passed the relevance threshold at
-    all (see hybrid_search.py's search()) — resolve_promoted([], parents)
+    all (see step04_hybrid_search.py's search()) — resolve_promoted([], parents)
     is just [], and find_expected_rank must handle that as a clean miss,
     not an error."""
     assert find_expected_rank([], "note1-flat.md", None) is None

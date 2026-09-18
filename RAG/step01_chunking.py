@@ -1,5 +1,5 @@
 """
-chunking.py — structure-aware markdown chunker, now with parent/child
+step01_chunking.py — structure-aware markdown chunker, now with parent/child
 (small-to-big) output. See docs/parent-child-retrieval.md for the full design
 rationale — this docstring covers just the mechanism.
 

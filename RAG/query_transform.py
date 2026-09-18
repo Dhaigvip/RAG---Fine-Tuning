@@ -37,7 +37,7 @@ IAM surface the original note below deliberately avoided.
 
 Update Sept 16: the eu.-routed profile itself is now confirmed working
 end-to-end — a real /ask call (see docs/api-strategies.md's Verification
-section) hit this exact model id via generate.py with no AccessDenied /
+section) hit this exact model id via step05_generate.py with no AccessDenied /
 ValidationException. That confirms the profile is authorized on this
 account generically. It does NOT yet confirm HyDE's own call to it
 specifically — TOOL_RAG_QUERY_TRANSFORM has resolved to "none" in every
@@ -60,7 +60,7 @@ haiku-20240307-v1:0 was chosen because it's confirmed directly invocable in
 eu-central-1 with NO cross-region inference profile required, avoiding the
 extra IAM surface a "eu."/"global." routed inference profile needs.
 
-Requires: boto3 (already a dependency via embed.py)
+Requires: boto3 (already a dependency via step02_embed.py)
 """
 
 import json
@@ -68,7 +68,7 @@ import os
 
 import boto3
 
-from embed import REGION, PROFILE
+from step02_embed import REGION, PROFILE
 
 # "none" disables this entirely (embed the raw query, old behavior).
 # "hyde" is the default — see the problem statement above for why it's worth
@@ -127,7 +127,7 @@ def generate_hyde_document(query: str) -> str:
 
 def transform_query_for_embedding(query: str) -> str:
     """Return whatever text should actually be embedded for the VECTOR leg
-    of retrieval (hybrid_search.py's vector_rank calls this). BM25 always
+    of retrieval (step04_hybrid_search.py's vector_rank calls this). BM25 always
     uses the raw query, completely unaffected by this function — see
     docs/query-transformation-strategies.md.
 

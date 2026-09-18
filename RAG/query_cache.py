@@ -3,13 +3,13 @@ query_cache.py — cache the final EMBEDDING VECTOR for a query, keyed on
 everything that can actually change what that vector is, so re-running the
 same query only re-calls Bedrock when something that matters really changed.
 
-Problem statement: hybrid_search.py's vector_rank() calls
+Problem statement: step04_hybrid_search.py's vector_rank() calls
 transform_query_for_embedding() — under HyDE (the default), that's a real
 Claude Haiku generation call, and generation is NOT deterministic, so the
 exact same query text can come back with a differently-phrased hypothetical
 passage on two separate runs — and then embed_text() (a real Titan Embed
 call), with no memoization anywhere. For a one-off interactive query
-(`python hybrid_search.py <query>`) that's exactly right — you want HyDE's
+(`python step04_hybrid_search.py <query>`) that's exactly right — you want HyDE's
 natural variation and a fresh call every time. But evaluate_retrieval.py
 re-runs the SAME fixed question set after every retrieval-affecting
 pipeline change (CANDIDATE_POOL, the reranker, LOCAL_MIN_SCORE, chunk
@@ -28,7 +28,7 @@ transform mode (none|hyde), the embedding model id, and (only when the mode
 is "hyde") the HyDE model id, since that's irrelevant otherwise. Changing
 any one of those invalidates just that entry, not the whole cache.
 
-This is opt-in via the `cache` parameter added to hybrid_search.py's
+This is opt-in via the `cache` parameter added to step04_hybrid_search.py's
 vector_rank()/search() — the interactive CLI path stays uncached by
 default (cache=None), so ad hoc querying still gets HyDE's real variation
 and never serves a stale vector. evaluate_retrieval.py is the one caller

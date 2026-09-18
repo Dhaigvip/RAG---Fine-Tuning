@@ -1,7 +1,7 @@
 """
-api.py — a minimal FastAPI wrapper around generate.py's generate_answer(),
+step06_api.py — a minimal FastAPI wrapper around step05_generate.py's generate_answer(),
 so this RAG pipeline is callable over HTTP instead of only as a one-shot CLI
-script (python generate.py "<question>"). This is the "assemble end-to-end
+script (python step05_generate.py "<question>"). This is the "assemble end-to-end
 pipeline (simple FastAPI endpoint)" item from the Sept 15-16 plan.
 
 See docs/api-strategies.md for the full landscape and the real design
@@ -13,7 +13,7 @@ Requires: pip install fastapi "uvicorn[standard]"
 (tests additionally need: pip install httpx — FastAPI's TestClient depends on it)
 
 Usage:
-    uvicorn api:app --reload
+    uvicorn step06_api:app --reload
         # from RAG\, starts a local dev server at http://127.0.0.1:8000
         # interactive docs (try it in the browser): http://127.0.0.1:8000/docs
     Then, e.g. from a second terminal:
@@ -26,7 +26,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
-from generate import generate_answer
+from step05_generate import generate_answer
 
 app = FastAPI(
     title="Personal Notes RAG API",
@@ -48,7 +48,7 @@ class AskRequest(BaseModel):
 
 
 class Source(BaseModel):
-    """One retrieved source, as generate.py's generate_answer() already
+    """One retrieved source, as step05_generate.py's generate_answer() already
     summarizes it (see that file's docstring) — this mirrors that shape
     exactly rather than inventing a new one."""
     index: int
@@ -59,7 +59,7 @@ class Source(BaseModel):
 
 class AskResponse(BaseModel):
     """Mirrors generate_answer()'s return dict field-for-field — see
-    generate.py's docstring for what each field means. Declaring this
+    step05_generate.py's docstring for what each field means. Declaring this
     explicitly (instead of just returning the raw dict) is what lets
     FastAPI generate the /docs schema and validate the response shape
     automatically.
@@ -106,7 +106,7 @@ def ask(request: AskRequest):
         return generate_answer(request.query, verbose=False)
     except Exception as e:
         # generate_answer() only raises from call_generation_model() after
-        # exhausting its retry budget (see generate.py) — a real Bedrock
+        # exhausting its retry budget (see step05_generate.py) — a real Bedrock
         # outage/throttling situation, not a bug in this specific request.
         # 503 (service temporarily unavailable) is the honest status for
         # that. Only the exception TYPE name is included, never str(e) —

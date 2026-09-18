@@ -1,5 +1,5 @@
 """
-test_api.py — endpoint-level tests for api.py, using FastAPI's TestClient
+test_api.py — endpoint-level tests for step06_api.py, using FastAPI's TestClient
 (calls the app in-process — no real server, no real network). generate_answer()
 is mocked (unittest.mock.patch) in every test here: this file tests the API
 LAYER (request validation, response shape, error translation), not
@@ -15,7 +15,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from api import app
+from step06_api import app
 
 client = TestClient(app)
 
@@ -27,9 +27,9 @@ def test_health_returns_ok():
 
 
 def test_ask_returns_generate_answer_result_on_success():
-    """A normal, grounded answer — api.py should pass the request through to
+    """A normal, grounded answer — step06_api.py should pass the request through to
     generate_answer() and return its result shape unchanged, with
-    verbose=False (see api.py's ask() docstring for why)."""
+    verbose=False (see step06_api.py's ask() docstring for why)."""
     fake_result = {
         "query": "how do I clean up branches and stashes",
         "refused": False,
@@ -87,10 +87,10 @@ def test_ask_rejects_missing_query_field_with_422():
 
 def test_ask_translates_generation_failure_to_503_without_leaking_internals():
     """generate_answer() raises after exhausting retries on a real Bedrock
-    outage (see generate.py's call_generation_model()) — the API must turn
+    outage (see step05_generate.py's call_generation_model()) — the API must turn
     that into a clean 503 naming only the exception TYPE, never leaking the
     raw exception message (which could carry internal boto3/AWS detail) to
-    the caller. See api.py's ask() and docs/api-strategies.md."""
+    the caller. See step06_api.py's ask() and docs/api-strategies.md."""
     with patch("api.generate_answer", side_effect=RuntimeError("exhausted retries calling Bedrock")):
         response = client.post("/ask", json={"query": "anything"})
 

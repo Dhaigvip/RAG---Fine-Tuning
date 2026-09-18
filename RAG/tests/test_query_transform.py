@@ -11,7 +11,7 @@ failure fall back to the raw query instead of blowing up search()?
 Each test directly sets module attributes (QUERY_TRANSFORM,
 generate_hyde_document) rather than environment variables, since
 QUERY_TRANSFORM is read once at import time — this is the same pattern
-hybrid_search.py's own tests would use for monkeypatching its module-level
+step04_hybrid_search.py's own tests would use for monkeypatching its module-level
 functions.
 
 Run: pytest   (from RAG/)
